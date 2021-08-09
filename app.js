@@ -4,9 +4,20 @@ const bodyParser = require('body-parser')
 const flash = require('express-flash')
 const session = require('express-session')
 const multer = require('multer')
+const path = require('path')
 
 const app = express()
-const upload = multer({ dest: 'img/' })
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'public/img')
+  },
+  filename: (req, file, cb) => {
+    console.log(file)
+    cb(null, Date.now() + path.extname(file.originalname))
+  }
+})
+const upload = multer({storage: storage})
 
 const PORT = 8000
 
@@ -78,9 +89,11 @@ app.get("/tambah", (req, res) => {
   res.render('tambah', { alert: '' });
 })
 
-app.post("/tambah", (req, res) => {
+app.post("/tambah", upload.single("gambar"), (req, res) => {
 
-  const { nrp, nama, email, jurusan, gambar } = req.body;
+  const { nrp, nama, email, jurusan} = req.body;
+  const gambar = req.file.filename
+  // console.log(req.file)
 
   // Connect to DB
   pool.getConnection((err, conn) => {
@@ -137,10 +150,11 @@ app.get("/ubah/:id", (req, res) => {
   })
 })
 
-app.post('/ubah/:id', (req, res) => {
+app.post('/ubah/:id', upload.single("gambar"), (req, res) => {
 
-  const { nrp, nama, email, jurusan, gambar } = req.body;
+  const { nrp, nama, email, jurusan } = req.body;
   const id = req.params.id;
+  const gambar = req.file.filename;
 
   pool.getConnection((err, conn) => {
     if (err) throw err;
