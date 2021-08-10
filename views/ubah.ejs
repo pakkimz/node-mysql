@@ -8,6 +8,7 @@
   <body>
     <h1>Ubah data mahasiswa</h1>
 
+    <%= typeof msg !== 'undefined' ? msg : '' %>
     <form action="" method="post" enctype="multipart/form-data">
       <ul>
         <li>
@@ -27,7 +28,8 @@
           <input type="text" name="jurusan" id="jurusan" value="<%= jurusan %>">
         </li>
         <li>
-          <label for="gambar">Gambar :</label>
+          <label for="gambar">Gambar :</label><br>
+          <img src="/img/<%= gambar %>" width="50"><br>
           <input type="file" name="gambar" id="gambar" value="<%= gambar %>">
         </li>
         <li>
@@ -38,10 +40,6 @@
 
     <br><br>
     <a href="/">Daftar mahasiswa</a>
-    <br><br>
-    <% if (alert != 'undefined') { %>
-      <%= alert %>
-    <% } %>
   </body>
 
 </html>

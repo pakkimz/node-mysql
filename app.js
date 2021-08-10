@@ -13,11 +13,28 @@ const storage = multer.diskStorage({
     cb(null, 'public/img')
   },
   filename: (req, file, cb) => {
-    console.log(file)
+    // console.log(file)
     cb(null, Date.now() + path.extname(file.originalname))
   }
 })
-const upload = multer({storage: storage})
+const upload = multer({
+  storage: storage,
+  limits: {fileSize: 1000000},
+  fileFilter: function(req, file, cb) {
+    checkFileType(file, cb)
+  }
+}).single('gambar')
+
+function checkFileType(file, cb) {
+  const filetypes = /jpeg|jpg|png|gif/;
+  const extname = filetypes.test(path.extname(file.originalname).toLowerCase())
+  const mimetype = filetypes.test(file.mimetype)
+  if (mimetype && extname) {
+    return cb(null, true)
+  } else {
+    cb('Error: Images Only')
+  }
+}
 
 const PORT = 8000
 
@@ -25,7 +42,7 @@ const pool = mysql.createPool({
   host : 'localhost',
   user: 'root',
   password: '',
-  database: 'phpdasar'
+  database: 'phpdasar2'
 })
 
 app.use(session({
@@ -50,8 +67,6 @@ app.get("/", (req, res) => {
     console.log('Connected as ID ' + conn.threadId)
     conn.query('SELECT * FROM mahasiswa', (err, rows) => {
       conn.release()
-
-      // console.log(typeof rows)
 
       if (!err) {
         res.render('index', { rows: rows, num: 1})
@@ -89,30 +104,43 @@ app.get("/tambah", (req, res) => {
   res.render('tambah', { alert: '' });
 })
 
-app.post("/tambah", upload.single("gambar"), (req, res) => {
+app.post("/tambah", (req, res) => {
 
-  const { nrp, nama, email, jurusan} = req.body;
-  const gambar = req.file.filename
-  // console.log(req.file)
-
-  // Connect to DB
-  pool.getConnection((err, conn) => {
-    if (err) throw err;   // not connected
-    console.log('Connected as ID ' + conn.threadId);
-
-    // Use the connection
-    conn.query('INSERT INTO mahasiswa SET nrp = ?, nama = ?, email = ?, jurusan = ?, gambar = ?', [nrp, nama, email, jurusan, gambar], (err, rows) => {
-      // When done with connection, release it
-      conn.release();
-
-      if (!err) {
-        res.render('tambah', { alert: 'User telah ditambahkan' });
-        // res.redirect('/');
+  upload(req, res, err => {
+    if (err) {
+      res.render('tambah', {
+        msg: err
+      })
+    } else {
+      if (req.file == undefined) {
+        res.render('tambah', {
+          msg: 'Error: File tidak ditemukan'
+        })
       } else {
-        console.log(err);
+        const { nrp, nama, email, jurusan} = req.body;
+        const gambar = req.file.filename;
+        // Connect to DB
+        pool.getConnection((err, conn) => {
+          if (err) throw err;   // not connected
+          console.log('Connected as ID ' + conn.threadId);
+
+          // Use the connection
+          conn.query('INSERT INTO mahasiswa SET nrp = ?, nama = ?, email = ?, jurusan = ?, gambar = ?', [nrp, nama, email, jurusan, gambar], (err, rows) => {
+            // When done with connection, release it
+            conn.release();
+
+            if (!err) {
+              res.render('tambah', { msg: 'User telah ditambahkan' });
+              // res.redirect('/');
+            } else {
+              console.log(err);
+            }
+          })
+        })
       }
-    })
+    }
   })
+
 })
 
 // ubah data
@@ -145,36 +173,48 @@ app.get("/ubah/:id", (req, res) => {
           alert: ''
         });
       }
-      console.log(rows);
+      // console.log(rows);
     })
   })
 })
 
-app.post('/ubah/:id', upload.single("gambar"), (req, res) => {
+app.post('/ubah/:id', (req, res) => {
 
-  const { nrp, nama, email, jurusan } = req.body;
-  const id = req.params.id;
-  const gambar = req.file.filename;
-
-  pool.getConnection((err, conn) => {
-    if (err) throw err;
-    console.log('Connected as ID ' + conn.threadId);
-
-    conn.query('UPDATE mahasiswa SET nrp = ?, nama = ?, email = ?, jurusan = ?, gambar = ? WHERE id = ?', [nrp, nama, email, jurusan, gambar, id], (err, rows) => {
-      conn.release();
-      // console.log(rows);
-
-      if(!err) {
-        // res.redirect('/');
-        res.render('ubah', {
-          id, nrp, nama, email, jurusan, gambar,
-          alert: `User dengan id ${id} berhasil diubah`
-        });
+  upload(req, res, err => {
+    if (err) {
+      res.render('ubah', {
+        msg: err
+      })
+    } else {
+      if (req.file == undefined) {
+        res.redirect('/')
       } else {
-        console.log(err);
-      }
+        const { nrp, nama, email, jurusan } = req.body;
+        const id = req.params.id;
+        const gambar = req.file.filename;
 
-    })
+        pool.getConnection((err, conn) => {
+          if (err) throw err;
+          console.log('Connected as ID ' + conn.threadId);
+
+          conn.query('UPDATE mahasiswa SET nrp = ?, nama = ?, email = ?, jurusan = ?, gambar = ? WHERE id = ?', [nrp, nama, email, jurusan, gambar, id], (err, rows) => {
+            conn.release();
+            // console.log(rows);
+
+            if(!err) {
+              // res.redirect('/');
+              res.render('ubah', {
+                id, nrp, nama, email, jurusan, gambar,
+                msg: `User dengan id ${id} berhasil diubah`
+              });
+            } else {
+              console.log(err);
+            }
+
+          })
+        })
+      }
+    }
   })
 })
 
