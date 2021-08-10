@@ -180,40 +180,46 @@ app.get("/ubah/:id", (req, res) => {
 
 app.post('/ubah/:id', (req, res) => {
 
+  let gambar = '';
   upload(req, res, err => {
     if (err) {
       res.render('ubah', {
         msg: err
       })
     } else {
+
       if (req.file == undefined) {
-        res.redirect('/')
+        gambar = req.body.gambarLama;
+        console.log(gambar)
       } else {
-        const { nrp, nama, email, jurusan } = req.body;
-        const id = req.params.id;
-        const gambar = req.file.filename;
-
-        pool.getConnection((err, conn) => {
-          if (err) throw err;
-          console.log('Connected as ID ' + conn.threadId);
-
-          conn.query('UPDATE mahasiswa SET nrp = ?, nama = ?, email = ?, jurusan = ?, gambar = ? WHERE id = ?', [nrp, nama, email, jurusan, gambar, id], (err, rows) => {
-            conn.release();
-            // console.log(rows);
-
-            if(!err) {
-              // res.redirect('/');
-              res.render('ubah', {
-                id, nrp, nama, email, jurusan, gambar,
-                msg: `User dengan id ${id} berhasil diubah`
-              });
-            } else {
-              console.log(err);
-            }
-
-          })
-        })
+        gambar = req.file.filename;
+        console.log(gambar)
       }
+
+      const { id, nrp, nama, email, jurusan } = req.body;
+      // jika tidak ada input hidden pakai dibawah
+      // const id = req.params.id;
+
+      pool.getConnection((err, conn) => {
+        if (err) throw err;
+        console.log('Connected as ID ' + conn.threadId);
+
+        conn.query('UPDATE mahasiswa SET nrp = ?, nama = ?, email = ?, jurusan = ?, gambar = ? WHERE id = ?', [nrp, nama, email, jurusan, gambar, id], (err, rows) => {
+          conn.release();
+          // console.log(rows);
+
+          if(!err) {
+            // res.redirect('/');
+            res.render('ubah', {
+              id, nrp, nama, email, jurusan, gambar,
+              msg: `User dengan id ${id} berhasil diubah`
+            });
+          } else {
+            console.log(err);
+          }
+
+        })
+      })
     }
   })
 })
